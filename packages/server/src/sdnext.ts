@@ -739,16 +739,23 @@ export async function startSdnext(opts: StartOptions): Promise<RunningEngine> {
   const args = opts.args ?? [];
   if (!existsSync(script)) throw new Error(`SD.Next startup script not found: ${script}`);
 
+  const childEnv = {
+    ...process.env,
+    PYTHONIOENCODING: 'utf-8',
+    PYTHONUTF8: '1',
+    TQDM_DISABLE: '1',
+    ...opts.env,
+  };
   const child = isWindows
     ? spawn([script, ...args].map(quoteWindowsShellArg).join(' '), {
         cwd: opts.root,
         shell: true,
         windowsHide: true,
-        env: { ...process.env, ...opts.env },
+        env: childEnv,
       })
     : spawn(script, args, {
         cwd: opts.root,
-        env: { ...process.env, ...opts.env },
+        env: childEnv,
       });
   opts.onProcess?.(child);
 

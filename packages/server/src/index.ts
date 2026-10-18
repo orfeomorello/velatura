@@ -1209,8 +1209,21 @@ export async function buildServer(opts: ServerOptions = {}): Promise<BuiltServer
       engineWasReady,
     });
     if (awake.ready) {
-      engineWasReady = true;
-      return;
+      if (!managed && (await hasIsolatedSessionConfig())) {
+        // An orphaned SD.Next process from a previous Velatura run has broken
+        // stdout/stderr pipes on Windows, which causes [Errno 22] Invalid argument
+        // inside Python when Diffusers/tqdm writes to console during generation.
+        // Shut it down cleanly so we start a fresh managed process below.
+        diagnostics.info('sdnext.orphaned.restarting');
+        await client.shutdown().catch(() => undefined);
+        const deadline = Date.now() + 15_000;
+        while (Date.now() < deadline && (await client.status()).ready) {
+          await new Promise((resolve) => setTimeout(resolve, 400));
+        }
+      } else {
+        engineWasReady = true;
+        return;
+      }
     }
     engineWasReady = false;
     if (!config.sdnextRoot) {
@@ -1560,7 +1573,7 @@ export async function buildServer(opts: ServerOptions = {}): Promise<BuiltServer
         ready: status.ready,
         error: status.error,
         starting: Boolean(engineBoot),
-        managed: Boolean(managed),
+        managed: Boolean(managed) || (status.ready && (await hasIsolatedSessionConfig())),
         /** the checkpoint SD.Next itself reports as currently loaded */
         model: status.ready ? await client.currentCheckpoint().catch(() => undefined) : undefined,
         /** the base checkpoint selected by the active profile; not a load confirmation */
@@ -2700,10 +2713,23 @@ export async function buildServer(opts: ServerOptions = {}): Promise<BuiltServer
   });
 
   app.post('/api/v1/sdnext/stop', async () => {
-    if (!managed) return { stopped: false, reason: 'the engine was not started by Velatura' };
-    await managed.stop();
-    managed = undefined;
-    return { stopped: true };
+    if (managed) {
+      await managed.stop();
+      managed = undefined;
+      return { stopped: true };
+    }
+    // If SD.Next survived a previous Velatura restart, it will still carry
+    // Velatura's isolated session config path (--config ...sdnext-session/config.json).
+    // Allow stopping it cleanly via its /sdapi/v1/shutdown endpoint.
+    if (await hasIsolatedSessionConfig()) {
+      await client.shutdown().catch(() => undefined);
+      const deadline = Date.now() + 12_000;
+      while (Date.now() < deadline && (await client.status()).ready) {
+        await new Promise((resolve) => setTimeout(resolve, 400));
+      }
+      return { stopped: true };
+    }
+    return { stopped: false, reason: 'the engine was not started by Velatura' };
   });
 
   app.post('/api/v1/sdnext/restart', async () => {
@@ -2922,6 +2948,14 @@ export async function buildServer(opts: ServerOptions = {}): Promise<BuiltServer
       api: '/api/v1/health',
     }));
   }
+
+  app.addHook('onClose', async () => {
+    if (managed) {
+      const current = managed;
+      managed = undefined;
+      await current.stop().catch(() => undefined);
+    }
+  });
 
   // the profile may already be adapted to the files the user owns
   await refreshDerivedProfile();

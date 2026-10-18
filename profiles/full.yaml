@@ -1,0 +1,36 @@
+# Velatura — Full
+#
+# Turbo BF16 counterpart to Low. Full weights occupy about 32.44 GB on disk,
+# plus the small shared tokenizer.
+- id: full
+  label: Full
+  description: Qwen-Image 2.1 Turbo BF16 transformer, encoder and VAE with 8-step generation (~32.4 GB on disk, for high-VRAM systems).
+  vramGb: 32
+  steps: 8
+  resolution: 1024
+  emphasis: quality
+  sampling:
+    samplerName: Default
+    cfgScale: 1
+  post:
+    hires:
+      enabled: false
+      scale: 1.5
+      steps: 8
+      denoising: 0.35
+    detailer:
+      enabled: false
+      strength: 0.3
+      steps: 12
+  engine:
+    args:
+      - "--api"
+    pipeline: "Autodetect"
+    checkpoint: "Velatura-Qwen-Image-2.1-Turbo-BF16"
+  models:
+    - role: dit
+      manifestId: dit-turbo-bf16
+    - role: text-encoder
+      manifestId: te-qwen3vl-bf16
+    - role: vae
+      manifestId: vae-2.1-bf16

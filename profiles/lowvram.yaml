@@ -1,0 +1,39 @@
+# Velatura — Low (default)
+#
+# Low uses the SDNQ dynamic UINT4 Turbo transformer and encoder,
+# plus the SDNQ-compatible Turbo VAE. The local Diffusers snapshot is assembled
+# by Velatura; no full Qwen base checkpoint is downloaded.
+- id: lowvram
+  label: Low (default)
+  description: Qwen-Image 2.1 Turbo SDNQ dynamic UINT4 with fast 8-step generation (~12.4 GB on disk, ideal for 12–16 GB VRAM GPUs).
+  vramGb: 13
+  steps: 8
+  resolution: 1024
+  emphasis: speed
+  sampling:
+    samplerName: Default
+    cfgScale: 1
+  post:
+    hires:
+      enabled: false
+      scale: 1.5
+      steps: 4
+      denoising: 0.35
+    detailer:
+      enabled: false
+      strength: 0.3
+      steps: 10
+  engine:
+    args:
+      - "--api"
+    pipeline: "Autodetect"
+    checkpoint: "Velatura-Qwen-Image-2.1-Turbo-SDNQ-UINT4"
+  models:
+    - role: dit
+      manifestId: dit-turbo-sdnq-uint4
+    - role: text-encoder
+      manifestId: te-qwen3vl-sdnq-dynamic-int4
+    - role: vae
+      manifestId: vae-2.1-sdnq
+    - role: lora
+      manifestId: lora-lightning-4step

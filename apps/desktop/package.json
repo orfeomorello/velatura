@@ -1,0 +1,12 @@
+{
+  "name": "@velatura/desktop",
+  "version": "0.1.4",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "description": "Optional native shell for Velatura (tinyjs). The web UI stays the default.",
+  "scripts": {
+    "dev": "tinyjs dev",
+    "build": "tinyjs build"
+  }
+}

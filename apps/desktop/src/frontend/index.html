@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Velatura</title>
+    <style>
+      body {
+        margin: 0;
+        background: #0e1116;
+        color: #e6edf3;
+        font: 14px ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        display: grid;
+        place-items: center;
+        height: 100vh;
+      }
+      .box { text-align: center; max-width: 460px; padding: 24px; }
+      h1 { font-size: 20px; margin: 0 0 6px; }
+      p { color: #8b98a5; margin: 0 0 18px; }
+      .dot {
+        display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+        background: #c9a227; margin-right: 8px;
+        animation: pulse 1.2s ease-in-out infinite;
+      }
+      @keyframes pulse { 0%, 100% { opacity: 0.3 } 50% { opacity: 1 } }
+      pre {
+        text-align: left; background: #161b22; border: 1px solid #2a323d; border-radius: 8px;
+        padding: 10px; color: #8b98a5; font-size: 12px; overflow: auto; max-height: 200px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="box">
+      <h1>Velatura</h1>
+      <p>a local studio for SD.Next</p>
+      <p><span class="dot"></span><span id="state">starting the local server…</span></p>
+      <pre id="log"></pre>
+    </div>
+
+    <script type="module">
+      const state = document.getElementById('state');
+      const log = document.getElementById('log');
+
+      async function boot() {
+        const status = await tiny.app.status();
+        if (status.error) {
+          state.textContent = status.error;
+          log.textContent = (status.log || []).join('');
+          return;
+        }
+        if (!status.url) {
+          state.textContent = 'waiting for the local server…';
+          setTimeout(boot, 700);
+          return;
+        }
+        state.textContent = 'opening…';
+        // The UI is a normal web app: hand the window over to it.
+        window.location.replace(status.url);
+      }
+
+      boot().catch((err) => {
+        state.textContent = String(err);
+      });
+    </script>
+  </body>
+</html>

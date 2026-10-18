@@ -1,0 +1,16 @@
+{
+  "name": "velatura",
+  "title": "Velatura",
+  "size": "1280x880",
+  "id": "org.velatura.desktop",
+  "version": "0.1.4",
+  "icon": "assets/icon.png",
+  "backend": "src/backend/main.js",
+  "frontend": {
+    "dir": "src/frontend"
+  },
+  "downloads": "deny",
+  "popups": "deny",
+  "contextMenu": false,
+  "attribution": "Velatura — a local studio for SD.Next · community project, not affiliated with SD.Next"
+}

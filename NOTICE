@@ -1,0 +1,31 @@
+Velatura
+Copyright 2026 the Velatura contributors
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use
+this file except in compliance with the License. You may obtain a copy of the
+License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed
+under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+
+--------------------------------------------------------------------------------
+Relationship with SD.Next & Third-Party Components
+--------------------------------------------------------------------------------
+Velatura is an independent community project and is not affiliated with SD.Next.
+
+Velatura does NOT include, copy, modify, or redistribute any SD.Next source code
+or binaries. SD.Next is an independent program (licensed under AGPL-3.0 by its
+authors) that the user installs separately; Velatura interacts with it solely
+as an external client over SD.Next's local HTTP REST API.
+
+See THIRD_PARTY.md for the list of open-source npm dependencies and their
+licenses.
+
+No model weights are distributed with this software. Model files are downloaded
+directly by the user from the upstream repositories listed in
+manifests/models.yaml; their licenses belong to their respective authors and are
+shown by the application before any download starts (see MODEL-LICENSES.md).

@@ -1,0 +1,37 @@
+{
+  "name": "velatura",
+  "version": "0.1.4",
+  "private": true,
+  "type": "module",
+  "description": "Velatura — simplified local interface for Qwen-Image 2.1 on SD.Next (community project, not affiliated with SD.Next)",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/orfeomorello/velatura.git"
+  },
+  "homepage": "https://github.com/orfeomorello/velatura",
+  "engines": {
+    "node": ">=20.19"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @velatura/core && npm run build -w @velatura/server && npm run build -w @velatura/cli && npm run build -w @velatura/ui",
+    "build:desktop": "npm run build -w @velatura/desktop",
+    "dev": "npm run dev -w @velatura/server & npm run dev -w @velatura/ui",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "npm run typecheck -w @velatura/core && npm run build -w @velatura/core && npm run typecheck -w @velatura/server && npm run build -w @velatura/server && npm run typecheck -w @velatura/cli",
+    "start": "node packages/cli/dist/index.js"
+  },
+  "overrides": {
+    "light-my-request": "6.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.12",
+    "vite": "^6.4.4"
+  }
+}

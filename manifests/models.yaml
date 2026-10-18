@@ -1,0 +1,99 @@
+# Velatura model manifest
+#
+# Metadata only. Velatura does not distribute or download weights automatically.
+# The UI shows the exact file, size, SHA-256 and licence before the user requests a download.
+# Qwen Turbo tokenizer support is separately pinned in qwen-turbo-reference.ts.
+version: 1
+generatedAt: "2026-10-18"
+models:
+  - id: dit-turbo-sdnq-uint4
+    role: dit
+    label: "Qwen-Image 2.1 Turbo — SDNQ dynamic UINT4 transformer"
+    repo: OzzyGT/Qwen_Image_2_1_Turbo_sdnq_dynamic_4bit
+    revision: "05c2f7737886dff796a8c0f592383f641b73c8dd"
+    file: "transformer/diffusion_pytorch_model.safetensors"
+    dest: UNET
+    sizeBytes: 4101092720
+    sha256: 832d481a096f0e2c061cbd4871e4964b4e439ac002389eaea7d5d52c61d275c5
+    license: qwen-research
+    licenseUrl: https://huggingface.co/Qwen/Qwen-Image-2.1-Turbo/blob/fc13ba1986fcb905854dc8de2f52eee395f49b5b/LICENSE
+    required: true
+    note: "Community SDNQ dynamic UINT4/Hadamard quantization. The complete profile also needs the matching SDNQ text encoder, VAE and tokenizer. The Turbo model card specifies the non-commercial Qwen Research terms."
+  - id: te-qwen3vl-sdnq-dynamic-int4
+    role: text-encoder
+    label: "Qwen3-VL 8B — SDNQ dynamic UINT4 text and vision encoder"
+    repo: OzzyGT/Qwen_Image_2_1_Turbo_sdnq_dynamic_4bit
+    revision: "05c2f7737886dff796a8c0f592383f641b73c8dd"
+    file: "text_encoder/model.safetensors"
+    dest: Text-encoder
+    sizeBytes: 6737716656
+    sha256: 8a774f0bd3693971b5f104ded3f91c53d617ebe75efc24e67578c8ebb4b2bb78
+    license: qwen-research
+    licenseUrl: https://huggingface.co/Qwen/Qwen-Image-2.1-Turbo/blob/fc13ba1986fcb905854dc8de2f52eee395f49b5b/LICENSE
+    required: true
+    note: "Matching SDNQ encoder from the pinned Turbo repository; includes the visual tower needed for image editing."
+  - id: vae-2.1-sdnq
+    role: vae
+    label: "Qwen-Image 2.1 Turbo VAE — SDNQ repository"
+    repo: OzzyGT/Qwen_Image_2_1_Turbo_sdnq_dynamic_4bit
+    revision: "05c2f7737886dff796a8c0f592383f641b73c8dd"
+    file: "vae/diffusion_pytorch_model.safetensors"
+    dest: VAE
+    sizeBytes: 675508656
+    sha256: 71879ffd5321e6d10c3c87513e2b474b1252efa7f3dec2969214a9bf06a6dd5c
+    license: qwen-research
+    licenseUrl: https://huggingface.co/Qwen/Qwen-Image-2.1-Turbo/blob/fc13ba1986fcb905854dc8de2f52eee395f49b5b/LICENSE
+    required: true
+    note: "Use this VAE with the matching SDNQ profile. It is not byte-identical to the Comfy-Org BF16 VAE used by Full."
+  - id: dit-turbo-bf16
+    role: dit
+    label: "Qwen-Image 2.1 Turbo — BF16 transformer"
+    repo: Comfy-Org/Qwen-Image-2.1
+    revision: "a8342359c61979b06a8dafb1a47991fe1f30e994"
+    file: "diffusion_models/qwen_image_2.1_turbo_bf16.safetensors"
+    dest: UNET
+    sizeBytes: 14230280616
+    sha256: 8b74237a7f505773e2c66726fa696444b4c704585c93a347cff9044937f7914a
+    license: qwen-research
+    licenseUrl: https://huggingface.co/Qwen/Qwen-Image-2.1/blob/main/LICENSE
+    required: true
+    note: "Full-profile Turbo transformer weights in BF16. This is not the undistilled 40-step base model."
+  - id: te-qwen3vl-bf16
+    role: text-encoder
+    label: "Qwen3-VL 8B — BF16 text and vision encoder"
+    repo: Comfy-Org/Qwen-Image-2.1
+    revision: "a8342359c61979b06a8dafb1a47991fe1f30e994"
+    file: "text_encoders/qwen3vl_8b_bf16.safetensors"
+    dest: Text-encoder
+    sizeBytes: 17534334616
+    sha256: 68bdc82bc1b66851162ae656225e7e2068166b603db19bd5d5a3b90eb12669a9
+    license: qwen-research
+    licenseUrl: https://huggingface.co/Qwen/Qwen-Image-2.1/blob/main/LICENSE
+    required: true
+    note: "BF16 encoder shared with the Qwen-Image 2.1 model family; includes the visual tower needed for image editing."
+  - id: vae-2.1-bf16
+    role: vae
+    label: "Qwen-Image 2.1 Turbo VAE — BF16"
+    repo: Comfy-Org/Qwen-Image-2.1
+    revision: "a8342359c61979b06a8dafb1a47991fe1f30e994"
+    file: "vae/qwen_image_2.1_vae_bf16.safetensors"
+    dest: VAE
+    sizeBytes: 675509688
+    sha256: bb21f7473051e1ac368515dd3f2e15cd44d7a11748ee8823e1ddca3e4876b7c9
+    license: qwen-research
+    licenseUrl: https://huggingface.co/Qwen/Qwen-Image-2.1/blob/main/LICENSE
+    required: true
+    note: "BF16 VAE used by Full. It is not interchangeable with the Qwen-Image 1.x/2.0 VAE."
+  - id: lora-lightning-4step
+    role: lora
+    label: "Lightning 4-step LoRA"
+    repo: lightx2v/Qwen-Image-2.1-Lightning
+    revision: "6b0a1176327c01522a44276c5da67331a025b6fc"
+    file: "pytorch_lora_weights.safetensors"
+    dest: Lora
+    sizeBytes: 67144280
+    sha256: 53c69320d4163da51032f90275074028cb098556039c72b45f8dce9f0f9e34a3
+    license: unknown
+    licenseUrl: https://huggingface.co/lightx2v/Qwen-Image-2.1-Lightning
+    required: false
+    note: "Optional 4-step LoRA retained in Low by user decision. Compatibility with the Turbo 8-step schedule is not verified; the licence is undeclared."

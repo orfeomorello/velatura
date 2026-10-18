@@ -1,0 +1,37 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# build output
+dist/
+build/
+*.tsbuildinfo
+apps/desktop/.build/
+apps/desktop/dist/
+release/
+
+# local state & runtime installations
+.velatura/
+sdnext/
+data/
+*.log
+*.zip
+*.sha256
+.env
+.env.*
+!.env.example
+
+# editors / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# never commit model weights or user data
+*.gguf
+*.safetensors
+*.ckpt
+*.pt
+*.pth
+*.part

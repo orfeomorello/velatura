@@ -52,7 +52,7 @@ program.enablePositionalOptions();
 program
   .name('velatura')
   .description('Velatura — simplified local interface for Qwen-Image 2.1 on SD.Next')
-  .version('0.1.4');
+  .version('0.1.5');
 
 function openBrowser(url: string): void {
   const cmd =

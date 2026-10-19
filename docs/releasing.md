@@ -36,8 +36,8 @@ npm run typecheck
 npx vitest run
 node scripts/check-installers.mjs
 node scripts/make-release.mjs
-git tag v0.1.4
-git push origin v0.1.4
+git tag v0.1.5
+git push origin v0.1.5
 ```
 
 The workflow in `.github/workflows/release.yml` runs the tests, builds the
@@ -53,11 +53,11 @@ a self-referential hash. No external `zip` utility is used. Older files left in
 Once the release is published, the one-line install is:
 
 ```bash
-curl -fsSL https://github.com/orfeomorello/velatura/raw/v0.1.4/installer/install.sh | bash
+curl -fsSL https://github.com/orfeomorello/velatura/raw/v0.1.5/installer/install.sh | bash
 ```
 
 ```powershell
-irm https://github.com/orfeomorello/velatura/raw/v0.1.4/installer/install.ps1 | iex
+irm https://github.com/orfeomorello/velatura/raw/v0.1.5/installer/install.ps1 | iex
 ```
 
 The version in the URL can be `main` to always get the latest.

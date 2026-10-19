@@ -40,11 +40,11 @@ irm https://github.com/orfeomorello/velatura/raw/main/installer/install.ps1 | ie
 **From an archive you already downloaded:**
 
 ```bash
-bash installer/install.sh --from ./release/velatura-app-0.1.4.tar.gz
+bash installer/install.sh --from ./release/velatura-app-0.1.5.tar.gz
 ```
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File installer/install.ps1 -From .\release\velatura-app-0.1.4.zip
+powershell -ExecutionPolicy Bypass -File installer/install.ps1 -From .\release\velatura-app-0.1.5.zip
 ```
 
 What the installer does:

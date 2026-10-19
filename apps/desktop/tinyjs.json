@@ -3,7 +3,7 @@
   "title": "Velatura",
   "size": "1280x880",
   "id": "org.velatura.desktop",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "icon": "assets/icon.png",
   "backend": "src/backend/main.js",
   "frontend": {

@@ -94,7 +94,7 @@ suite('the installer', () => {
 
     const { stdout } = await run(launcher, ['--version'], { env: { ...process.env, HOME: home } });
     const version = stdout.trim();
-    expect(version).toBe('0.1.4');
+    expect(version).toBe('0.1.5');
 
     const { stdout: doctor } = await run(launcher, ['doctor'], { env: { ...process.env, HOME: home } });
     expect(doctor).toContain('manifest');
@@ -195,7 +195,7 @@ suite('the installer', () => {
         VELATURA_TEST_REAL_NODE: process.execPath,
       },
     });
-    expect(version.trim()).toBe('0.1.4');
+    expect(version.trim()).toBe('0.1.5');
 
     // and no portable runtime was left behind
     await expect(stat(join(home, '.velatura', 'runtime'))).rejects.toThrow();
@@ -311,6 +311,6 @@ suite('the installer', () => {
     expect((await stat(installed)).isFile()).toBe(true);
     const { stdout } = await run(launcher, ['--version'], { env: { ...process.env, HOME: home } });
     const version = stdout.trim();
-    expect(version).toBe('0.1.4');
+    expect(version).toBe('0.1.5');
   }, 180_000);
 });

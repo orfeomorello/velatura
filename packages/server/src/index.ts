@@ -294,7 +294,7 @@ export async function buildServer(opts: ServerOptions = {}): Promise<BuiltServer
     });
   let client = createSdnextClient(sdnextUrl);
   diagnostics.info('server.initializing', {
-    version: '0.1.4',
+    version: '0.1.5',
     profileId: config.profileId,
     port: config.port,
     sdnextConfigured: Boolean(config.sdnextRoot),
@@ -1560,7 +1560,7 @@ export async function buildServer(opts: ServerOptions = {}): Promise<BuiltServer
       ok: true,
       name: 'Velatura',
       tagline: 'Velatura',
-      version: '0.1.4',
+      version: '0.1.5',
       queue: {
         depth: queue.list().filter((j) => j.state === 'queued' || j.state === 'running').length,
         running: queue.list().some((j) => j.state === 'running'),

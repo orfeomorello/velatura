@@ -1,7 +1,7 @@
 /**
  * Pack the whole release in a single file.
  *
- *   node scripts/pack-full.mjs velatura-0.1.4.zip release
+ *   node scripts/pack-full.mjs velatura-0.1.5.zip release
  *
  * This is the archive for the people who download the release by hand: it
  * holds the program, the installers and the checksums, all together.

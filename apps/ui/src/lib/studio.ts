@@ -42,6 +42,8 @@ export interface GenerateDraft {
   selectedImageIndex?: number;
   compareMode?: boolean;
   cachedJobs?: Job[];
+  promptEnhanceModel?: string;
+  previousPromptBeforeEnhance?: string;
 }
 
 let savedDraft: GenerateDraft | undefined;

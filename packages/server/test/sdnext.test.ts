@@ -603,3 +603,60 @@ describe('SD.Next startup readiness', () => {
     }
   });
 });
+
+describe('SD.Next prompt-enhance client', () => {
+  it('lists prompt enhancement models and sends prompt enhancement requests via /sdapi/v1/prompt-enhance', async () => {
+    let receivedBody: Record<string, unknown> | undefined;
+    const server = createServer((request, response) => {
+      if (request.url === '/sdapi/v1/prompt-enhance' && request.method === 'GET') {
+        response.writeHead(200, { 'content-type': 'application/json' });
+        response.end(
+          JSON.stringify([
+            { name: 'Qwen/Qwen3-0.6B', vision: false, thinking: true },
+            { name: 'Qwen/Qwen3-VL-2B-Instruct', vision: true, thinking: false },
+          ]),
+        );
+        return;
+      }
+      if (request.url === '/sdapi/v1/prompt-enhance' && request.method === 'POST') {
+        const chunks: Buffer[] = [];
+        request.on('data', (chunk: Buffer) => chunks.push(chunk));
+        request.on('end', () => {
+          receivedBody = JSON.parse(Buffer.concat(chunks).toString('utf8')) as Record<string, unknown>;
+          response.writeHead(200, { 'content-type': 'application/json' });
+          response.end(
+            JSON.stringify({
+              prompt: 'a dramatic cinematic portrait of a samurai cat in neon rain, 35mm anamorphic',
+              seed: 12345,
+            }),
+          );
+        });
+        return;
+      }
+      response.writeHead(404).end();
+    });
+
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const port = (server.address() as AddressInfo).port;
+    try {
+      const client = new SdnextClient(`http://127.0.0.1:${port}`);
+      const models = await client.promptEnhanceModels();
+      expect(models).toEqual([
+        { name: 'Qwen/Qwen3-0.6B', vision: false, thinking: true },
+        { name: 'Qwen/Qwen3-VL-2B-Instruct', vision: true, thinking: false },
+      ]);
+
+      const enhanced = await client.enhancePrompt({
+        prompt: 'samurai cat',
+        model: 'Qwen/Qwen3-0.6B',
+        type: 'text',
+      });
+      expect(enhanced.prompt).toContain('samurai cat');
+      expect(enhanced.seed).toBe(12345);
+      expect(receivedBody?.model).toBe('Qwen/Qwen3-0.6B');
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+});
+

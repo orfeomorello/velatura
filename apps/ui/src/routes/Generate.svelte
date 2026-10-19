@@ -1,7 +1,13 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { api, formatEngineStage, sessionToken, type Job } from '../lib/api';
-  import { CHIPS, chipSentence } from '../lib/chips';
+  import {
+    CHIPS,
+    applyQuickActionPrompt,
+    chipSentence,
+    getQuickActionsForCount,
+    type QuickAction,
+  } from '../lib/chips';
   import Compare from '../lib/Compare.svelte';
   import { prepareImage } from '../lib/images';
   import { displayModelName } from '../lib/paths';
@@ -53,6 +59,24 @@
   let note = $state('');
   let submitting = $state(false);
   let errorMessage = $state('');
+  let enhancing = $state(false);
+  let promptEnhanceModel = $state('Qwen/Qwen3-0.6B');
+  let previousPromptBeforeEnhance = $state<string | undefined>(undefined);
+
+  interface EnhancerModelOption {
+    name: string;
+    label: string;
+    vision: boolean;
+  }
+
+  let enhancerModels = $state<EnhancerModelOption[]>([
+    { name: 'Qwen/Qwen3-0.6B', label: 'Qwen3 0.6B · Fast & Lightweight (~1.2 GB)', vision: false },
+    { name: 'Qwen/Qwen2.5-0.5B-Instruct', label: 'Qwen2.5 0.5B · Ultra-Light (~990 MB)', vision: false },
+    { name: 'HuggingFaceTB/SmolLM2-360M-Instruct', label: 'SmolLM2 360M · Tiny Laptop LLM (~720 MB)', vision: false },
+    { name: 'Qwen/Qwen3.5-0.8B', label: 'Qwen3.5 0.8B · Rich Creative Detail (~1.6 GB)', vision: false },
+    { name: 'Qwen/Qwen2.5-1.5B-Instruct', label: 'Qwen2.5 1.5B · High Quality (~3.0 GB)', vision: false },
+    { name: 'Qwen/Qwen3-VL-2B-Instruct', label: 'Qwen3-VL 2B · Vision + Text (~4.2 GB)', vision: true },
+  ]);
 
   let jobs = $state<Job[]>([]);
   let selectedJobId = $state<string | undefined>(undefined);
@@ -108,6 +132,8 @@
       selectedImageIndex,
       compareMode,
       cachedJobs: jobs,
+      promptEnhanceModel,
+      previousPromptBeforeEnhance,
     });
   }
 
@@ -197,6 +223,10 @@
       if (draft.selectedImageIndex !== undefined) selectedImageIndex = draft.selectedImageIndex;
       if (draft.compareMode !== undefined) compareMode = draft.compareMode;
       if (draft.cachedJobs?.length) jobs = [...draft.cachedJobs];
+      if (draft.promptEnhanceModel) promptEnhanceModel = draft.promptEnhanceModel;
+      if (draft.previousPromptBeforeEnhance !== undefined) {
+        previousPromptBeforeEnhance = draft.previousPromptBeforeEnhance;
+      }
     }
 
     const handoff = takeHandoff();
@@ -225,6 +255,7 @@
       compareMode = false;
       images = [];
       prompt = '';
+      previousPromptBeforeEnhance = undefined;
       errorMessage = '';
       note = '';
     });
@@ -264,7 +295,7 @@
 
   // Continuously keep session draft synced whenever key state changes
   $effect(() => {
-    void [prompt, negative, steps, aspectPreset, seed, cfgScale, hires, detailer, denoising, images, selectedJobId, selectedImageIndex, compareMode, jobs];
+    void [prompt, negative, steps, aspectPreset, seed, cfgScale, hires, detailer, denoising, images, selectedJobId, selectedImageIndex, compareMode, jobs, promptEnhanceModel, previousPromptBeforeEnhance];
     saveSessionState();
   });
 
@@ -281,6 +312,105 @@
     selectedJobId = job.id;
     selectedImageIndex = imgIdx;
     compareMode = false;
+  }
+
+  let quickActions = $derived(getQuickActionsForCount(images.length));
+
+  function applyQuickAction(action: QuickAction) {
+    prompt = applyQuickActionPrompt(prompt, action);
+    if (action.params.denoising !== undefined) {
+      denoising = action.params.denoising;
+    }
+    if (action.params.negativePrompt !== undefined) {
+      negative = action.params.negativePrompt;
+    }
+    if (action.params.detailer !== undefined) {
+      detailer = action.params.detailer;
+    }
+    if (action.params.hires !== undefined) {
+      hires = action.params.hires;
+    }
+    const el = document.getElementById('prompt') as HTMLTextAreaElement | null;
+    el?.focus();
+  }
+
+  function isQuickActionActive(action: QuickAction): boolean {
+    const trimmed = prompt.trim();
+    return Boolean(trimmed && trimmed.startsWith(action.prompt));
+  }
+
+  function swapFirstTwoImages() {
+    if (images.length < 2) return;
+    const copy = [...images];
+    const first = copy[0]!;
+    copy[0] = copy[1]!;
+    copy[1] = first;
+    images = copy;
+  }
+
+  let enhanceElapsed = $state(0);
+  let enhanceRun = 0;
+
+  function cancelMagicPromptEnhance() {
+    enhanceRun += 1;
+    enhancing = false;
+    note = '';
+  }
+
+  async function runMagicPromptEnhance() {
+    if (enhancing || submitting) return;
+    const originalPrompt = prompt;
+    // nothing to enhance: the button does nothing on an empty prompt
+    if (!originalPrompt.trim()) return;
+    const run = ++enhanceRun;
+    enhancing = true;
+    enhanceElapsed = 0;
+    errorMessage = '';
+    note = '';
+    const startedAt = Date.now();
+    const ticker = setInterval(() => {
+      enhanceElapsed = Math.floor((Date.now() - startedAt) / 1000);
+    }, 500);
+    try {
+      const selectedModelInfo = enhancerModels.find((m) => m.name === promptEnhanceModel);
+      const res = await api.post<{ prompt?: string; seed?: number; error?: string }>('/api/v1/prompt-enhance', {
+        prompt: originalPrompt,
+        model: promptEnhanceModel,
+        image: selectedModelInfo?.vision && images[0] ? images[0] : undefined,
+        useVision: Boolean(selectedModelInfo?.vision && images[0]),
+      });
+      if (run !== enhanceRun) return; // cancelled by the user
+      if (res.error) {
+        errorMessage = res.error;
+        return;
+      }
+      if (res.prompt && res.prompt.trim()) {
+        previousPromptBeforeEnhance = originalPrompt;
+        prompt = res.prompt.trim();
+        const el = document.getElementById('prompt') as HTMLTextAreaElement | null;
+        el?.focus();
+      }
+    } catch (err) {
+      if (run === enhanceRun) errorMessage = (err as Error).message;
+    } finally {
+      clearInterval(ticker);
+      if (run === enhanceRun) enhancing = false;
+    }
+  }
+
+  function enhanceStageLabel(sec: number): string {
+    const model = promptEnhanceModel.split('/').pop();
+    if (sec < 4) return `Sending your idea to ${model}…`;
+    if (sec < 15) return `Loading ${model} into memory…`;
+    return `First use: downloading & caching ${model} (one time only, may take a few minutes)…`;
+  }
+
+  function undoMagicPromptEnhance() {
+    if (previousPromptBeforeEnhance === undefined) return;
+    prompt = previousPromptBeforeEnhance;
+    previousPromptBeforeEnhance = undefined;
+    const el = document.getElementById('prompt') as HTMLTextAreaElement | null;
+    el?.focus();
   }
 
   function applyChip(id: string) {
@@ -688,6 +818,17 @@
     {#if note}
       <div class="muted small" style="margin-bottom:6px">{note}</div>
     {/if}
+    {#if enhancing}
+      <div class="enhance-progress panel">
+        <div class="enhance-progress-row">
+          <span class="magic-spin">✨</span>
+          <span class="small">{enhanceStageLabel(enhanceElapsed)}</span>
+          <span class="muted small" style="margin-left:auto">{formatDuration(enhanceElapsed)}</span>
+          <button type="button" class="ghost small" onclick={cancelMagicPromptEnhance}>Cancel</button>
+        </div>
+        <div class="bar indeterminate" style="margin:8px 0 0"><div style="width:35%"></div></div>
+      </div>
+    {/if}
 
     {#if showChips}
       <div class="chips" style="margin-bottom:8px">
@@ -734,11 +875,19 @@
           {/if}
         </div>
         <div class="row" style="margin-top:10px;align-items:center">
-          <div style="flex:2 1 240px">
+          <div style="flex:2 1 220px">
             <label for="negative">Negative prompt (optional)</label>
             <input id="negative" type="text" bind:value={negative} placeholder="blurry, watermark, low quality" />
           </div>
-          <div style="flex:1 1 180px;display:flex;gap:14px;padding-top:16px">
+          <div style="flex:2 1 220px">
+            <label for="enhancer-model">✨ Magic Prompt LLM</label>
+            <select id="enhancer-model" bind:value={promptEnhanceModel}>
+              {#each enhancerModels as em (em.name)}
+                <option value={em.name}>{em.label}</option>
+              {/each}
+            </select>
+          </div>
+          <div style="flex:1 1 160px;display:flex;gap:14px;padding-top:16px">
             <label class="small" style="display:flex;gap:6px;align-items:center;margin:0;cursor:pointer">
               <input type="checkbox" bind:checked={hires} />
               <span>Hi-res pass</span>
@@ -755,17 +904,58 @@
     <div class="gpt-composer">
       {#if images.length > 0 || preparing}
         <div class="gpt-attachments">
-          <div class="small muted" style="width:100%;margin-bottom:2px">
-            Reference image{images.length > 1 ? 's' : ''} attached for editing:
+          <div class="gpt-attachments-header">
+            <span class="small muted">
+              {images.length === 1
+                ? '1 reference image attached — pick a Quick Action below or describe your edit:'
+                : `${images.length} reference images attached — pick a fusion action or describe how to combine them:`}
+            </span>
+            {#if images.length >= 2}
+              <button
+                type="button"
+                class="gpt-swap-btn"
+                onclick={swapFirstTwoImages}
+                title="Swap Image 1 and Image 2 roles"
+              >
+                ⇄ Swap Image 1 ↔ Image 2
+              </button>
+            {/if}
           </div>
-          {#each images as image, index (image)}
-            <div class="thumb">
-              <img src={image} alt="attachment {index + 1}" />
-              <button type="button" aria-label="Remove image" onclick={() => (images = images.filter((_, i) => i !== index))}>×</button>
+
+          <div class="gpt-attachments-thumbs">
+            {#each images as image, index (image)}
+              <div class="thumb">
+                <img src={image} alt="Image {index + 1}" />
+                <span class="thumb-role-badge">Image {index + 1}</span>
+                <button
+                  type="button"
+                  aria-label="Remove image"
+                  onclick={() => (images = images.filter((_, i) => i !== index))}
+                >
+                  ×
+                </button>
+              </div>
+            {/each}
+            {#if preparing}
+              <span class="muted small">Preparing image…</span>
+            {/if}
+          </div>
+
+          {#if quickActions.length > 0}
+            <div class="gpt-quick-actions" role="group" aria-label="Quick image actions">
+              {#each quickActions as action (action.id)}
+                <button
+                  type="button"
+                  class="gpt-quick-pill"
+                  class:active={isQuickActionActive(action)}
+                  title={action.summary}
+                  onclick={() => applyQuickAction(action)}
+                >
+                  <span class="gpt-quick-icon" aria-hidden="true">{action.icon}</span>
+                  <span>{action.label}</span>
+                </button>
+              {/each}
             </div>
-          {/each}
-          {#if preparing}
-            <span class="muted small">Preparing image…</span>
           {/if}
         </div>
       {/if}
@@ -800,21 +990,50 @@
           rows="2"
           bind:value={prompt}
           onkeydown={handleKeydown}
-          placeholder={images.length > 0
-            ? 'Describe what to change in the attached image… (Press Enter to generate)'
-            : 'Describe the image you want to create… (Press Enter to generate)'}
+          placeholder={images.length >= 2
+            ? 'Click a fusion action above (Copy Pose, Character Swap…) or describe how to combine Image 1 & Image 2…'
+            : images.length === 1
+              ? 'Click a Quick Action above (Real Phone Photo, Anime Style…) or describe what to change in Image 1…'
+              : 'Describe the image you want to create, then ✨ Enhance it if you like… (Press Enter to generate)'}
         ></textarea>
 
         <!-- Prompt Helpers / Settings Toggles -->
         <div class="gpt-composer-actions">
+          {#if previousPromptBeforeEnhance !== undefined && prompt !== previousPromptBeforeEnhance}
+            <button
+              type="button"
+              class="gpt-pill-btn"
+              title="Restore your previous prompt before Magic Enhance"
+              onclick={undoMagicPromptEnhance}
+            >
+              ↩ Undo
+            </button>
+          {/if}
+          <button
+            type="button"
+            class="gpt-magic-btn {enhancing ? 'busy' : ''}"
+            disabled={enhancing || submitting || !prompt.trim()}
+            title={prompt.trim()
+              ? `Expand & enrich your prompt with ${promptEnhanceModel.split('/').pop()}`
+              : 'Write a short idea first, then click Enhance'}
+            onclick={runMagicPromptEnhance}
+          >
+            {#if enhancing}
+              <span class="magic-spin">✨</span>
+              <span>Enhancing…</span>
+            {:else}
+              <span>✨</span>
+              <span>Enhance</span>
+            {/if}
+          </button>
           {#if images.length > 0}
             <button
               type="button"
               class="gpt-pill-btn {showChips ? 'active' : ''}"
-              title="Quick edit suggestions"
+              title="More prompt templates"
               onclick={() => (showChips = !showChips)}
             >
-              Ideas
+              More
             </button>
           {/if}
           <button
@@ -854,9 +1073,9 @@
       </div>
 
       <div class="gpt-composer-footer muted small">
-        <span>{profile?.label ?? 'Turbo'} · {steps} steps · {currentAspect.short}</span>
+        <span>{profile?.label ?? 'Turbo'} · {steps} steps · {currentAspect.short} · ✨ {promptEnhanceModel.split('/').pop()}</span>
         {#if images.length > 0}
-          <span>· Editing mode ({images.length} reference image{images.length > 1 ? 's' : ''})</span>
+          <span>· Editing mode ({images.length} ref{images.length > 1 ? 's' : ''} · strength {denoising})</span>
         {/if}
       </div>
     </div>

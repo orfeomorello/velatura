@@ -1352,11 +1352,101 @@ main.studio-mode {
 
 .gpt-attachments {
   display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 8px;
   padding: 4px 4px 10px;
   border-bottom: 1px solid var(--line);
   margin-bottom: 8px;
+}
+
+.gpt-attachments-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.gpt-attachments-thumbs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.thumb-role-badge {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 999px;
+  background: rgba(11, 13, 17, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #fff;
+  pointer-events: none;
+}
+
+.gpt-swap-btn {
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.gpt-swap-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.gpt-quick-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding-top: 2px;
+}
+
+.gpt-quick-pill {
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.08s ease;
+}
+
+.gpt-quick-pill:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.gpt-quick-pill.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #17130a;
+  font-weight: 600;
+}
+
+.gpt-quick-icon {
+  font-size: 13px;
+  line-height: 1;
 }
 
 .gpt-composer-row {
@@ -1428,6 +1518,56 @@ main.studio-mode {
   border-color: var(--accent);
   color: var(--text);
   background: var(--accent-soft);
+}
+
+.gpt-magic-btn {
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid rgba(212, 162, 89, 0.45);
+  background: linear-gradient(135deg, rgba(212, 162, 89, 0.16), rgba(212, 162, 89, 0.06));
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 0 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.08s ease;
+}
+
+.gpt-magic-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: linear-gradient(135deg, rgba(212, 162, 89, 0.28), rgba(212, 162, 89, 0.12));
+}
+
+.gpt-magic-btn.busy {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.gpt-magic-btn:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.magic-spin {
+  display: inline-block;
+  animation: velatura-spin 1.4s linear infinite;
+}
+
+.enhance-progress {
+  margin-bottom: 8px;
+  padding: 10px 14px;
+  border-color: rgba(212, 162, 89, 0.45);
+}
+
+.enhance-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .gpt-send-btn {

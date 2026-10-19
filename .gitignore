@@ -35,3 +35,6 @@ Thumbs.db
 *.pt
 *.pth
 *.part
+
+# internal planning
+ROADMAP.md

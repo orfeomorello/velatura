@@ -128,6 +128,33 @@ export interface SdnextTaskStatus {
   elapsed?: number;
 }
 
+export interface SdnextPromptEnhanceModel {
+  name: string;
+  vision: boolean;
+  thinking: boolean;
+}
+
+export interface SdnextPromptEnhanceRequest {
+  prompt: string;
+  type?: 'text' | 'image' | 'video';
+  model?: string;
+  system_prompt?: string;
+  prefix?: string;
+  suffix?: string;
+  do_sample?: boolean;
+  max_tokens?: number;
+  temperature?: number;
+  use_vision?: boolean;
+  image?: string;
+  seed?: number;
+  nsfw?: boolean;
+}
+
+export interface SdnextPromptEnhanceResponse {
+  prompt: string;
+  seed: number;
+}
+
 const SDNEXT_GENERATION_TIMEOUT_MS = 30 * 60_000;
 
 interface LocalHttpResponse {
@@ -311,6 +338,7 @@ export class SdnextClient {
         method === 'POST' && (
           path === '/sdapi/v1/txt2img' ||
           path === '/sdapi/v1/img2img' ||
+          path === '/sdapi/v1/prompt-enhance' ||
           path.startsWith('/sdapi/v1/checkpoint')
         );
       const res = longSdnextPost
@@ -519,6 +547,28 @@ export class SdnextClient {
   /** Shut down SD.Next after an explicit user request to restart the managed session. */
   async shutdown(): Promise<void> {
     await this.request('/sdapi/v1/shutdown', { method: 'POST', body: '{}' });
+  }
+
+  /** List the prompt enhancement models registered in SD.Next. */
+  async promptEnhanceModels(): Promise<SdnextPromptEnhanceModel[]> {
+    const data = await this.request<unknown>('/sdapi/v1/prompt-enhance');
+    if (!Array.isArray(data)) return [];
+    return data
+      .filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object'))
+      .map((item) => ({
+        name: typeof item.name === 'string' ? item.name : '',
+        vision: Boolean(item.vision),
+        thinking: Boolean(item.thinking),
+      }))
+      .filter((item) => Boolean(item.name));
+  }
+
+  /** Enhance or invent a prompt via SD.Next's native Prompt Enhance script. */
+  async enhancePrompt(req: SdnextPromptEnhanceRequest): Promise<SdnextPromptEnhanceResponse> {
+    return this.request<SdnextPromptEnhanceResponse>('/sdapi/v1/prompt-enhance', {
+      method: 'POST',
+      body: JSON.stringify(req),
+    });
   }
 
   /**

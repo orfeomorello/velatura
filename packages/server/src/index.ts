@@ -2882,6 +2882,154 @@ export async function buildServer(opts: ServerOptions = {}): Promise<BuiltServer
     };
   });
 
+  const CURATED_PROMPT_ENHANCE_MODELS = [
+    {
+      name: 'Qwen/Qwen3-0.6B',
+      label: 'Qwen3 0.6B (Fast & Lightweight · ~1.2 GB · Apache-2.0)',
+      vision: false,
+      thinking: true,
+      recommended: true,
+    },
+    {
+      name: 'Qwen/Qwen2.5-0.5B-Instruct',
+      label: 'Qwen2.5 0.5B Instruct (Ultra-Light · ~990 MB · Apache-2.0)',
+      vision: false,
+      thinking: false,
+      recommended: true,
+    },
+    {
+      name: 'HuggingFaceTB/SmolLM2-360M-Instruct',
+      label: 'SmolLM2 360M Instruct (Tiny Laptop LLM · ~720 MB · Apache-2.0)',
+      vision: false,
+      thinking: false,
+      recommended: true,
+    },
+    {
+      name: 'Qwen/Qwen3.5-0.8B',
+      label: 'Qwen3.5 0.8B (Rich Creative Detail · ~1.6 GB · Apache-2.0)',
+      vision: false,
+      thinking: true,
+      recommended: true,
+    },
+    {
+      name: 'Qwen/Qwen2.5-1.5B-Instruct',
+      label: 'Qwen2.5 1.5B Instruct (High Quality · ~3.0 GB · Apache-2.0)',
+      vision: false,
+      thinking: false,
+      recommended: false,
+    },
+    {
+      name: 'Qwen/Qwen3-VL-2B-Instruct',
+      label: 'Qwen3-VL 2B Instruct (Vision + Text · ~4.2 GB · Apache-2.0)',
+      vision: true,
+      thinking: false,
+      recommended: false,
+    },
+  ] as const;
+
+  app.get('/api/v1/prompt-enhance/models', async () => {
+    const engineModels = await client.promptEnhanceModels().catch(() => []);
+    const engineSet = new Set(engineModels.map((m) => m.name));
+    const curated = CURATED_PROMPT_ENHANCE_MODELS.map((preset) => ({
+      ...preset,
+      supportedByEngine: engineSet.size === 0 || engineSet.has(preset.name),
+    }));
+    return {
+      defaultModel: 'Qwen/Qwen3-0.6B',
+      curated,
+      engineModels,
+    };
+  });
+
+  app.post('/api/v1/prompt-enhance', async (request, reply) => {
+    const body = (request.body ?? {}) as {
+      prompt?: string;
+      model?: string;
+      image?: string;
+      useVision?: boolean;
+      temperature?: number;
+      maxTokens?: number;
+      seed?: number;
+      systemPrompt?: string;
+    };
+
+    const status = await client.status();
+    if (!status.ready) {
+      return reply.code(503).send({
+        error: 'The AI engine is not running yet. Start the engine first to use the Magic Prompt Enhancer.',
+      });
+    }
+
+    const inputPrompt = typeof body.prompt === 'string' ? body.prompt.trim() : '';
+    const rawImage = typeof body.image === 'string' && body.image.trim() ? body.image.trim() : undefined;
+    const strippedImage = rawImage?.includes(',') ? rawImage.split(',')[1] : rawImage;
+    const selectedModel =
+      typeof body.model === 'string' && body.model.trim()
+        ? body.model.trim()
+        : 'Qwen/Qwen3-0.6B';
+    const useVision = Boolean(body.useVision && strippedImage && /vl|gemma-3-4b|gemma-3n|gemma-4|ministral/i.test(selectedModel));
+
+    diagnostics.info('prompt.enhance.started', {
+      model: selectedModel,
+      hasPrompt: inputPrompt.length > 0,
+      hasImage: Boolean(strippedImage),
+      useVision,
+    });
+
+    // Temporarily disable offline_mode if active so SD.Next can load/cache the small enhancer LLM from Hugging Face on first use, then restore it
+    const currentOptions = await client.options().catch(() => ({} as Record<string, unknown>));
+    const wasOffline = currentOptions.offline_mode === true;
+    if (wasOffline) {
+      await client.setOptions({ offline_mode: false }).catch(() => undefined);
+    }
+
+    try {
+      const response = await client.enhancePrompt({
+        prompt: inputPrompt,
+        type: useVision ? 'image' : 'text',
+        model: selectedModel,
+        system_prompt: body.systemPrompt,
+        do_sample: true,
+        max_tokens: typeof body.maxTokens === 'number' ? body.maxTokens : 280,
+        temperature: typeof body.temperature === 'number' ? body.temperature : 0.75,
+        use_vision: useVision,
+        image: useVision ? strippedImage : undefined,
+        seed: typeof body.seed === 'number' ? body.seed : -1,
+        nsfw: true,
+      });
+
+      const enhanced = (response?.prompt ?? '').trim();
+      if (!enhanced || enhanced.startsWith('Error:')) {
+        diagnostics.warn('prompt.enhance.empty', { model: selectedModel });
+        return reply.code(500).send({
+          error: enhanced || 'The prompt enhancer returned an empty response. Check the SD.Next log for details.',
+        });
+      }
+
+      diagnostics.info('prompt.enhance.completed', {
+        model: selectedModel,
+        seed: response.seed,
+      });
+
+      return {
+        prompt: enhanced,
+        seed: response.seed,
+        model: selectedModel,
+      };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Prompt enhancement failed';
+      diagnostics.warn('prompt.enhance.failed', {
+        model: selectedModel,
+        errorType: err instanceof Error ? err.name : 'UnknownError',
+      });
+      return reply.code(500).send({ error: message });
+    } finally {
+      if (wasOffline) {
+        await client.setOptions({ offline_mode: true }).catch(() => undefined);
+      }
+    }
+  });
+
   app.get('/api/v1/queue', async () => ({ jobs: queue.list() }));
 
   app.post('/api/v1/queue', async (request) => {

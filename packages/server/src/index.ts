@@ -1549,9 +1549,13 @@ export async function buildServer(opts: ServerOptions = {}): Promise<BuiltServer
   });
 
   // ---- API ----------------------------------------------------------------
+  let manualStartupInProgress = false;
+
   app.get('/api/v1/health', async () => {
     const status = await client.status();
     const hardware = await detectHardware().catch(() => undefined);
+    const isStarting = Boolean(engineBoot) || manualStartupInProgress;
+    const isReady = status.ready && !isStarting;
     return {
       ok: true,
       name: 'Velatura',
@@ -1570,12 +1574,12 @@ export async function buildServer(opts: ServerOptions = {}): Promise<BuiltServer
         : undefined,
       sdnext: {
         url: sdnextUrl,
-        ready: status.ready,
+        ready: isReady,
         error: status.error,
-        starting: Boolean(engineBoot),
+        starting: isStarting,
         managed: Boolean(managed) || (status.ready && (await hasIsolatedSessionConfig())),
         /** the checkpoint SD.Next itself reports as currently loaded */
-        model: status.ready ? await client.currentCheckpoint().catch(() => undefined) : undefined,
+        model: isReady ? await client.currentCheckpoint().catch(() => undefined) : undefined,
         /** the base checkpoint selected by the active profile; not a load confirmation */
         selectedBaseModel: profileCheckpoint,
         /** the profile in use, adapted or not */
@@ -2675,6 +2679,7 @@ export async function buildServer(opts: ServerOptions = {}): Promise<BuiltServer
       if (log.length > 400) log.shift();
       emitEvent({ type: 'engine-log', line });
     };
+    manualStartupInProgress = true;
     try {
       engine = await startSdnext({
         root,
@@ -2709,6 +2714,8 @@ export async function buildServer(opts: ServerOptions = {}): Promise<BuiltServer
       if (activeLaunch.qwenGgufCompat) await removeQwen21GgufCompat(activeLaunch.qwenGgufCompat.root).catch(() => false);
       if (managed && engine && sdnextUrl === engine.url) managed = undefined;
       return { error: (err as Error).message, log: log.slice(-20) };
+    } finally {
+      manualStartupInProgress = false;
     }
   });
 

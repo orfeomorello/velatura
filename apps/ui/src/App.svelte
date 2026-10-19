@@ -289,11 +289,15 @@
     {:else if route === 'queue'}
       <Queue />
     {:else if route === 'generate'}
-      {#if health && !health.sdnext.ready}
+      {#if !health || !health.sdnext.ready || health.sdnext.starting || engineActionInFlight === 'start'}
         <!-- Full-screen Engine Launch / Startup Hero before showing Studio -->
         <div class="engine-gate">
           <div class="engine-gate-card panel">
-            {#if engineActionInFlight === 'start' || health.sdnext.starting}
+            {#if !health}
+              <div class="engine-spinner" aria-hidden="true"></div>
+              <h2>Checking Engine Status…</h2>
+              <p class="muted">Connecting to local Velatura server…</p>
+            {:else if engineActionInFlight === 'start' || health.sdnext.starting}
               <div class="engine-spinner" aria-hidden="true"></div>
               <h2>Starting SD.Next Engine…</h2>
               <p class="muted">

@@ -2,7 +2,7 @@
   Velatura installer — Windows.
 
     irm https://…/install.ps1 | iex
-    powershell -ExecutionPolicy Bypass -File install.ps1 -From .\velatura-app-0.1.5.zip
+    powershell -ExecutionPolicy Bypass -File install.ps1 -From .\velatura-app-0.1.6.zip
 
   It installs the program and a `velatura` command in your user folder.
   It reuses Node 20.19+ if it is already installed; otherwise it installs a
@@ -20,7 +20,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$Version = '0.1.5'
+$Version = '0.1.6'
 $NodeVersion = 'v20.19.0'
 
 # the program needs Node 20.19 or more

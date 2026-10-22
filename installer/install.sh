@@ -3,7 +3,7 @@
 # Velatura installer — Linux and macOS.
 #
 #   curl -fsSL https://…/install.sh | bash
-#   bash install.sh --from ./velatura-app-0.1.5.tar.gz      (offline)
+#   bash install.sh --from ./velatura-app-0.1.6.tar.gz      (offline)
 #
 # It installs the program and a `velatura` command in your PATH. It reuses
 # Node 20.19+ if it is already on the machine; otherwise it installs a
@@ -12,7 +12,7 @@
 #
 set -euo pipefail
 
-VERSION="0.1.5"
+VERSION="0.1.6"
 NODE_VERSION="v20.19.0"
 
 INSTALL_DIR="${VELATURA_HOME:-$HOME/.velatura}"

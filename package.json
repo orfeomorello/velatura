@@ -1,6 +1,6 @@
 {
   "name": "velatura",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "private": true,
   "type": "module",
   "description": "Velatura — simplified local interface for Qwen-Image 2.1 on SD.Next (community project, not affiliated with SD.Next)",

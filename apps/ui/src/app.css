@@ -481,7 +481,8 @@ button.badge:hover {
 .badge.err { color: var(--err); border-color: rgba(248, 81, 73, 0.4); }
 
 button.primary,
-button.ghost {
+button.ghost,
+a.primary {
   font: inherit;
   border-radius: 8px;
   padding: 6px 12px;
@@ -491,11 +492,20 @@ button.ghost {
   color: var(--text);
 }
 
-button.primary {
+button.primary,
+a.primary {
   background: var(--accent);
   border-color: var(--accent);
   color: #17130a;
   font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+button.primary:hover:not(:disabled),
+a.primary:hover {
+  filter: brightness(1.08);
 }
 
 button:disabled {
@@ -828,14 +838,7 @@ pre.log {
   text-decoration: none;
 }
 
-/* ---- intent chips (the instructions, not the magic) ---- */
-.chips {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 10px;
-}
-
+/* ---- suggestion chips (the instructions, not the magic) ---- */
 .chip {
   font: inherit;
   font-size: 12.5px;
@@ -1119,6 +1122,16 @@ main.studio-mode {
   padding: 8px;
 }
 
+.stage-viewport.zoomed {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.stage-viewport.zoomed:active {
+  cursor: grabbing;
+}
+
 .stage-main-image {
   max-width: 100%;
   max-height: 100%;
@@ -1135,6 +1148,126 @@ main.studio-mode {
 
 .stage-main-image.preview-dim {
   filter: brightness(0.45);
+}
+
+/* ---- The controls that live on the picture ---- */
+.stage-nudge-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+}
+
+.stage-nudge-wrap {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.stage-nudge {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(12, 14, 19, 0.74);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(10px);
+  pointer-events: auto;
+}
+
+.stage-nudge-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 24px);
+  grid-template-rows: repeat(3, 24px);
+  gap: 1px;
+}
+
+.stage-nudge-key {
+  font: inherit;
+  font-size: 14px;
+  line-height: 1;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #eef1f6;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.stage-nudge-grid .stage-nudge-key {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  font-size: 13px;
+}
+
+.stage-nudge-key:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--accent);
+}
+
+.stage-nudge-key:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.stage-nudge-key.up {
+  grid-area: 1 / 2;
+}
+
+.stage-nudge-key.left {
+  grid-area: 2 / 1;
+}
+
+.stage-nudge-key.right {
+  grid-area: 2 / 3;
+}
+
+.stage-nudge-key.down {
+  grid-area: 3 / 2;
+}
+
+.stage-nudge-zoom {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding-left: 4px;
+  margin-left: 2px;
+  border-left: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.stage-nudge-zoom .stage-nudge-key {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  font-size: 13px;
+}
+
+
+
+
+.stage-nudge-caption {
+  padding: 2px 7px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(12, 14, 19, 0.66);
+  backdrop-filter: blur(10px);
+  color: rgba(238, 241, 246, 0.74);
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  pointer-events: auto;
+  cursor: help;
 }
 
 .stage-running {
@@ -1408,45 +1541,239 @@ main.studio-mode {
   background: var(--accent-soft);
 }
 
-.gpt-quick-actions {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  align-items: center;
-  padding-top: 2px;
+.gpt-quick-icon {
+  font-size: 13px;
+  line-height: 1;
 }
 
-.gpt-quick-pill {
+.gpt-tool-group-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted, #888);
+}
+
+.gpt-edit-caret {
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+/* ---- Edit / Style: two modes over one panel ---- */
+.gpt-mode-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 2px 4px 6px;
+}
+
+.gpt-modes {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel-2);
+}
+
+.gpt-mode-btn {
   font: inherit;
   font-size: 12.5px;
   font-weight: 500;
-  padding: 5px 11px;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
   border-radius: 999px;
-  border: 1px solid var(--line);
-  background: var(--panel-2);
-  color: var(--text);
+  padding: 5px 12px;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease, transform 0.08s ease;
+  transition: color 0.15s ease, background 0.15s ease;
 }
 
-.gpt-quick-pill:hover {
-  border-color: var(--accent);
-  background: var(--accent-soft);
+.gpt-mode-btn:hover:not(:disabled) {
+  color: var(--text);
 }
 
-.gpt-quick-pill.active {
-  border-color: var(--accent);
+.gpt-mode-btn.active {
   background: var(--accent);
   color: #17130a;
   font-weight: 600;
 }
 
-.gpt-quick-icon {
-  font-size: 13px;
-  line-height: 1;
+.gpt-mode-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.gpt-mode-side {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.gpt-reset-btn {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.gpt-reset-btn:hover:not(:disabled) {
+  border-color: var(--err);
+  color: var(--err);
+  background: rgba(248, 81, 73, 0.08);
+}
+
+.gpt-reset-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ---- The command menu: one popover, the families as tabs ---- */
+.gpt-command-menu {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 12px 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.55);
+  max-height: min(52vh, 430px);
+  overflow-y: auto;
+}
+
+.gpt-menu-tabs {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel-2);
+  scrollbar-width: none;
+}
+
+.gpt-menu-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.gpt-menu-tab {
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  padding: 5px 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.gpt-menu-tab:hover {
+  color: var(--text);
+}
+
+.gpt-menu-tab.active {
+  background: var(--accent);
+  color: #17130a;
+  font-weight: 600;
+}
+
+.gpt-menu-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gpt-menu-summary {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.gpt-menu-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gpt-menu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 6px;
+}
+
+.gpt-menu-item {
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  text-align: left;
+  padding: 7px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.gpt-menu-item:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.gpt-menu-item-label {
+  overflow-wrap: anywhere;
+}
+
+.gpt-menu-note {
+  margin: 0;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+
+/* the inline confirmation before a preset overwrites a custom prompt */
+.gpt-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gpt-confirm-quote {
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+
+.gpt-confirm-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 .gpt-composer-row {
@@ -1743,5 +2070,9 @@ main.studio-mode {
 
   .panel {
     padding: 14px 12px;
+  }
+
+  .gpt-command-menu {
+    max-height: 46vh;
   }
 }

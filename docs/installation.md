@@ -257,17 +257,92 @@ an existing copy from elsewhere.
 
 ## 8. The loop: edit the result again
 
-Under every result there is an *edit again* button: the image becomes the
-reference of the next job, with the prompt already in the box. When a job had
+Editing is a loop, not a single shot: when an edit finishes, its result is
+already attached as the reference of the next one, with the prompt still in
+the box, so continuing costs no re-upload. Older results keep a *Continue in
+Studio* button under the image, which does the same on demand. When a job had
 a reference image, a before/after slider is there too — drag it to wipe one
 into the other.
 
-Above the prompt there are the six intent chips of the specification (*style*,
-*pose*, *appearance*, *remove*, *add*, *text*). A chip does not run anything
-by itself: it writes a well-formed sentence in the box, and you can edit the
-sentence before you send it. The sentence adapts to the number of reference
-images, because "apply the style of Image 1 to Image 2" only makes sense with
-two images.
+*Reset*, next to **Edits**, starts over: the reference is removed, the prompt
+and the negative prompt are emptied and the stage goes back to the empty
+state. The history and the filmstrip stay, so nothing is lost.
+
+### On the picture
+
+The controls are where the picture is. In the top-right corner of a finished
+result — and of a photo you have just attached, which takes the stage at its
+own size before any job exists — there is a small dock:
+
+- the cross extends the canvas: ← and → add a quarter of the width on that
+side, ↑ and ↓ a quarter of the height. The subject keeps its place and the
+model continues the scene in the new area, so the picture really gets wider or
+taller and one click is one job. The new strip is filled in the browser with
+the border of the photo stretched and blurred, which gives the model a colour
+and a light direction to continue instead of a black rectangle. The engine has
+no mask, so the whole canvas is regenerated, at a strength below the one used
+to expand both sides at once, and the existing part is kept as far as the
+model allows. The caption under the cross shows the current size in
+pixels, and an arrow is disabled once that side is at 2048 px. The aspect
+preset in the composer is not touched: the extension changes one picture, it                  is not a new generation setting.
+- **+** and **−** zoom the view from 100% to 400%, and the wheel zooms too:
+drag the picture to move around while it is magnified, or use the arrow keys.
+This only changes what you see — the file, the job and the history are
+untouched — and the zoom goes back to 100% when a new picture takes the stage.
+
+The keyboard helps here too: `+` and `−` zoom, the arrow keys pan while the
+picture is magnified, and `Ctrl+Z` undoes the last command on the picture.
+Typing in the prompt keeps its own keys.
+
+The commands themselves stay in the composer: **Edits ▾** is the one place a
+command is chosen, so the picture carries only the arrows.
+
+Under a finished result the toolbar has **Variations**: it sends the job again
+with one seed over the one that produced the picture on the stage — same
+prompt, same references — so the next picture is a sibling of the current one
+instead of a new throw of the dice. One click is one job.
+
+A photo you attach is shown on the stage straight away, at its own size, so
+the arrows work on it before the first job exists: the last photo you added is
+the one on the stage. The prompt commands still only write their instruction
+there and wait for you, so nothing runs on the attached photo until you press
+*Apply edit* or one of the arrows. The same is true for a result on the stage:
+no command in the menu starts a job by itself.
+
+The camera orbit that used to live on these arrows is gone: the base model
+returns the picture it was given for every "turn the camera" wording, so the
+arrows now do something it can actually do. Outpainting from the **Canvas**
+family remains the version that expands both sides at once.
+
+### The command menu
+
+One menu, not two modes: **Edits ▾** above the box opens a popover whose tabs
+are the families of commands — Rotate Subject, Change Pose, Remove Object, Add
+Element, Text, Canvas, Style — with the presets of the chosen family below.
+Style is a family like the others: the whole menu is Edit, and the look is one
+of the things you can edit.
+
+What a click does never runs a job: the preset writes its instruction in the
+box and sets the parameters that go with it (edit strength, negative prompt),
+which you can then edit before pressing *Apply edit*. When a finished result
+is on the stage, confirming the instruction also makes that result the
+reference of the job, so reading the instruction before pressing *Apply edit*
+costs nothing.
+
+A preset is worded the way this model reads an edit: one action, the object or
+the region named in plain words, and a closing clause on what must stay the
+same. It never says "Image 1": on a single-image edit the model already knows
+which image it is working on, and that phrase is read literally, which makes
+the instruction vaguer instead of more precise. If you attach more than one
+reference, point at them yourself as `<image1>` and `<image2>` and change one
+thing per prompt — chaining edits works far better than one long request.
+
+If you have typed a prompt of your own and pick a preset while composing on a
+reference, Velatura asks before replacing it: you can keep the preset only, add
+your words after it, or cancel. When the command runs straight on a result,
+the command writes its instruction in the box, where you can read and change
+it, and *Undo*, next to the box, puts back the previous prompt and parameters
+together with the picture they were made on.
 
 ## 9. Where the pictures are, and how to delete them
 

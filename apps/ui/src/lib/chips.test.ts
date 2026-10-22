@@ -1,85 +1,101 @@
 import { describe, expect, it } from 'vitest';
 import {
-  CHIPS,
-  MULTI_IMAGE_ACTIONS,
-  SINGLE_IMAGE_ACTIONS,
+  STYLE_ACTIONS,
+  STYLE_GROUPS,
   applyQuickActionPrompt,
-  chipSentence,
+  findPreset,
   getQuickActionsForCount,
+  isCustomPrompt,
+  mergePresetPrompt,
 } from './chips';
+import { EDIT_TOOL_PRESETS } from './edit-tools';
 
-describe('the intent chips', () => {
-  it('writes a sentence that names the images it uses', () => {
-    const style = CHIPS.find((c) => c.id === 'style')!;
-    expect(chipSentence(style, 2)).toContain('Image 1');
-    expect(chipSentence(style, 2)).toContain('Image 2');
-    // with one image there is no "Image 2" to refer to
-    expect(chipSentence(style, 1)).not.toContain('Image 2');
-    expect(chipSentence(style, 1)).toContain('Image 1');
+const words = (prompt: string) => prompt.split(/\s+/).filter(Boolean).length;
+
+describe('the Style presets', () => {
+  it('need a reference image but are not narrowed by how many are attached', () => {
+    expect(getQuickActionsForCount(0)).toEqual([]);
+    expect(getQuickActionsForCount(1)).toEqual(STYLE_ACTIONS);
+    expect(getQuickActionsForCount(2)).toEqual(STYLE_ACTIONS);
+    expect(getQuickActionsForCount(4)).toEqual(STYLE_ACTIONS);
   });
 
-  it('works without any reference image', () => {
-    for (const chip of CHIPS) {
-      const sentence = chipSentence(chip, 0);
-      expect(sentence.length).toBeGreaterThan(10);
-      expect(sentence).not.toContain('Image 1');
+  it('are organised under headings that all have presets', () => {
+    for (const action of STYLE_ACTIONS) {
+      expect(STYLE_GROUPS).toContain(action.group);
+    }
+    for (const group of STYLE_GROUPS) {
+      expect(STYLE_ACTIONS.filter((a) => a.group === group).length).toBeGreaterThan(0);
     }
   });
 
-  it('never mentions an image that is not there', () => {
-    for (const chip of CHIPS) {
-      for (const count of [0, 1, 2, 3]) {
-        const sentence = chipSentence(chip, count);
-        const mentioned = (sentence.match(/Image \d/g) ?? []).map((m) => Number(m.split(' ')[1]));
-        for (const index of mentioned) {
-          expect(index).toBeLessThanOrEqual(count);
-        }
-      }
-    }
+  it('no longer mix in edits of the content or of the canvas', () => {
+    const ids = STYLE_ACTIONS.map((a) => a.id);
+    expect(ids).not.toContain('clean-background');
+    expect(ids).not.toContain('image-expansion');
+    expect(ids).toContain('boring-reality');
   });
 
-  it('asks for the images it really needs', () => {
-    const remove = CHIPS.find((c) => c.id === 'remove')!;
-    expect(remove.minImages).toBe(1);
-    expect(CHIPS.find((c) => c.id === 'style')!.minImages).toBe(0);
+  it('carry tuned parameters inside the valid range', () => {
+    for (const action of STYLE_ACTIONS) {
+      expect(action.params.denoising).toBeGreaterThan(0);
+      expect(action.params.denoising).toBeLessThanOrEqual(1);
+      expect(action.params.negativePrompt?.length).toBeGreaterThan(10);
+    }
   });
 });
 
-describe('contextual Quick Actions for reference images', () => {
-  it('returns empty actions when 0 images are attached', () => {
-    expect(getQuickActionsForCount(0)).toEqual([]);
-  });
+describe('the shape of a preset prompt', () => {
+  const allPrompts = [...STYLE_ACTIONS, ...EDIT_TOOL_PRESETS];
 
-  it('returns single-image actions when 1 image is attached, with tuned parameters and no Image 2 reference', () => {
-    const actions = getQuickActionsForCount(1);
-    expect(actions.length).toBeGreaterThanOrEqual(6);
-    expect(actions).toEqual(SINGLE_IMAGE_ACTIONS);
-    const phonePhoto = actions.find((a) => a.id === 'real-phone-photo');
-    expect(phonePhoto).toBeDefined();
-    expect(phonePhoto?.params.denoising).toBeGreaterThanOrEqual(0.85);
-    expect(phonePhoto?.params.negativePrompt).toContain('anime');
-
-    for (const action of actions) {
-      expect(action.prompt).toContain('Image 1');
-      expect(action.prompt).not.toContain('Image 2');
-      expect(action.params.denoising).toBeGreaterThan(0);
+  it('never names a reference slot', () => {
+    // "Image 1" is read literally by the model and makes the instruction vague;
+    // several references are addressed as <image1>, <image2> by the user instead.
+    for (const preset of allPrompts) {
+      expect(preset.prompt).not.toMatch(/Image\s*\d/i);
+      expect(preset.prompt).not.toMatch(/<image\d>/i);
     }
   });
 
-  it('returns multi-image fusion actions when 2 or more images are attached', () => {
-    const actions = getQuickActionsForCount(2);
-    expect(actions.length).toBeGreaterThanOrEqual(4);
-    expect(actions).toEqual(MULTI_IMAGE_ACTIONS);
-    for (const action of actions) {
-      expect(action.prompt).toContain('Image 1');
-      expect(action.prompt).toContain('Image 2');
-      expect(action.params.denoising).toBeGreaterThan(0);
+  it('stays short and closes with what must not change', () => {
+    for (const preset of allPrompts) {
+      expect(words(preset.prompt)).toBeLessThanOrEqual(30);
+      expect(preset.prompt.trim().endsWith('.')).toBe(true);
+      expect(preset.prompt).toMatch(/unchanged\.$/);
     }
   });
 
-  it('switches cleanly between quick action presets while preserving any custom user suffix', () => {
-    const anime = SINGLE_IMAGE_ACTIONS.find((a) => a.id === 'anime-style')!;
-    const phone = SINGLE_IMAGE_ACTIONS.find((a) => a.id === 'real-phone-photo')!;
+  it('spells the operation first, not a chain of requests', () => {
+    const imperatives = /^(Add|Turn|Put|Give|Rest|Sit|Remove|Change|Expand|Reframe|Sharpen|Relight|Turn|Give)\b/;
+    for (const preset of allPrompts) expect(preset.prompt).toMatch(imperatives);
+  });
+});
+
+describe('recognising which preset a prompt came from', () => {
+  const anime = STYLE_ACTIONS.find((a) => a.id === 'anime-style')!;
+  const phone = STYLE_ACTIONS.find((a) => a.id === 'real-phone-photo')!;
+
+  it('finds the preset of a prompt, with or without a user suffix', () => {
+    expect(findPreset(anime.prompt)?.id).toBe('anime-style');
+    expect(findPreset(`${anime.prompt}, wearing a red scarf`)?.id).toBe('anime-style');
+    expect(findPreset('  ')).toBeUndefined();
+    expect(findPreset('a photo of my cat')).toBeUndefined();
+  });
+
+  it('treats only user-written text as custom', () => {
+    expect(isCustomPrompt('')).toBe(false);
+    expect(isCustomPrompt('   ')).toBe(false);
+    expect(isCustomPrompt(anime.prompt)).toBe(false);
+    expect(isCustomPrompt(`${anime.prompt}, wearing a red scarf`)).toBe(false);
+    expect(isCustomPrompt('a photo of my cat')).toBe(true);
+  });
+
+  it('merges the user text after the preset instead of replacing it', () => {
+    expect(mergePresetPrompt('', anime)).toBe(anime.prompt);
+    expect(mergePresetPrompt('  a red scarf  ', anime)).toBe(`${anime.prompt} a red scarf`);
+  });
+
+  it('switches cleanly between presets while preserving any custom user suffix', () => {
     const first = applyQuickActionPrompt('', anime);
     expect(first).toBe(anime.prompt);
 

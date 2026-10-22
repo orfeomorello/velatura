@@ -22,6 +22,25 @@ export interface Handoff {
 let pending: Handoff | undefined;
 const listeners = new Set<(handoff: Handoff) => void>();
 
+/** The picture on the stage, so an undo can put the previous one back. */
+export interface StageSnapshot {
+  jobId?: string;
+  imageIndex: number;
+  cleared: boolean;
+}
+
+/** Prompt, parameters and picture as they were before the last command. */
+export interface UndoSnapshot {
+  prompt: string;
+  negative: string;
+  denoising: number;
+  stage?: StageSnapshot;
+  /** the attached photos, so undo can put an attached preview back on the stage */
+  images?: string[];
+  /** whether the attached photo was the picture on the stage */
+  attached?: boolean;
+}
+
 /** Persistent in-memory state of the Studio across tab navigation. */
 export interface GenerateDraft {
   profileId: string;
@@ -43,7 +62,12 @@ export interface GenerateDraft {
   compareMode?: boolean;
   cachedJobs?: Job[];
   promptEnhanceModel?: string;
-  previousPromptBeforeEnhance?: string;
+  /** Reset emptied the stage: do not fall back to the newest job on return. */
+  stageCleared?: boolean;
+  /** The attached photo was the picture on the stage when the user left. */
+  attachedOnStage?: boolean;
+  /** The prompt, parameters and picture to restore when the user undoes a command. */
+  undo?: UndoSnapshot;
 }
 
 let savedDraft: GenerateDraft | undefined;
